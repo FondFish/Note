@@ -1,0 +1,2 @@
+查看iptables规则：sudo iptables-save
+ip-forward 功能打开：echo 1 >/proc/sys/net/ipv4/ip_forward
