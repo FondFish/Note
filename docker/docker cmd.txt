@@ -1,0 +1,150 @@
+1、docker
+docker是一个打包应用的工具非常强大，能把操作系统也打在包里，进行无差别部署和运行。
+所以docker也被认为是建立在操作系统上的虚拟机。
+ 
+2、基本概念
+镜像（image）：类似操作系统的镜像，包括一个完整可运行的系统，操作系统、基础组件、应用程序都可以打包在一个镜像中。
+容器（container）：容器是某一个docker镜像的执行实例，可以启动、关闭、删除，可以理解成正一个linux系统，同一台机器上的多个container互相隔离。
+ 
+3、简单使用
+#安装docker（ubuntu）
+
+service docker status
+ 
+#从官方仓库中下载image
+docker pull centos
+docker pull ubuntu
+ 
+#查看本地可用的image
+docker images
+ 
+#启动一个centos的dokcer容器，直接进入bash
+docker  run  -it  centos  bash 
+ 
+#后台启动一个centos的dokcer容器
+docke r run  -d  -it  centos
+ 
+#后台启动一个centos的dokcer容器，监听80端口，映射到容器里的8080端口
+docke r run -p 80:8080  -d  -it  centos
+ 
+#查看正在运行的docker容器
+docker ps
+ 
+#查看所有docker容器
+docker ps -a
+ 
+#在运行状态的容器里启动一个bash（进入正在运行的容器）
+docker  exec  -it  $container_id  bash
+ 
+#启动/关闭/重启容器
+docker  start/stop/restart  $container_id
+ 
+#删除容器
+docker  rm  $container_id 
+ 
+#获取容器运行Log:  docker logs $container_id
+
+docker inspect相关：
+查看容器pid:  docker inspect --format '{{ .State.Pid }}' $container_id
+查看容器IP:  docker inspect --format '{{ .NetworkSettings.IPAddress }}' $container_id
+
+4、创建自定义镜像，打包应用
+mkdir test_image
+cd  test_image
+#创建Dockerfile
+vi  Dockerfile
+# 自定义image
+#继承一个已有的镜像，这里用cetos作为基础
+FROM centos
+#安装一些基础组件
+RUN yum install -y java-1.7.0-openjdk
+
+#把应用程序放入镜像（app1.tar.gz 事先放在同级目录下）
+RUN mkdir /yazuo_apps/
+ADD app1.tar.gz /yazuo_apps/
+ 
+#打包镜像，镜像名为app1，版本为1.0
+docker build -t app1:1.0 .
+ 
+#启动镜像，并启动app1，把本机的8080端口映射到容器的8080端口
+docker run -d -p 8080:8080 -it /yazuo_apps/app1/start.sh
+ 
+#导出镜像（直接通过文件来分发镜像到其他机器）
+docker  save  -o app1-1.0.image  app1:1.0
+
+运行容器时指定dns以及Hostname:
+docker run --dns=10.30.1.9 --hostname=WWW
+
+#用commit创建镜像
+sudo docker commit 614122c0aabb aoct/apache2
+
+修改docker pull镜像源
+  sudo echo "DOCKER_OPTS=\"$DOCKER_OPTS --registry-mirror=http://xxx.m.daocloud.io\"" >> /etc/default/docker service docker restart
+
+1./etc/hosts, /etc/resolv.conf和/etc/hostname，容器中的这三个文件不存在于镜像，而是存在于/var/lib/docker/containers/<container_id>，在启动容器的时候，通过mount的形式将这些文件挂载到容器内部。因此，如果在容器中修改这些文件的话，修改部分不会存在于容器的top layer，而是直接写入这三个物理文件中。
+
+10.10.90.13
+相关proxy设置
+（1）系统、route
+proxyhk.zte.com.cn 80
+sudo route add -host proxyhk.zte.com.cn gw 10.10.90.13
+（2）浏览器
+perfernce->Advanced->NetWork Setting
+（3）docker proxy
+mkdir /etc/systemd/system/docker.service.d/http-proxy.conf
+[Service]
+Enviroment="HTTP_PROXY=http://proxyhk.zte.com.cn:80/" "NO_PROXY=localhost,127.0.0.1"
+
+1、docker安装（ubuntu）
+
+2、docker镜像运行及docker hub
+docker run -it 
+docker login
+docker pull 
+docker search 
+docker push
+
+3、docker镜像制作、dockerfile
+镜像更新：进入到容器 apt-get update
+镜像提交：docker commit -m="has update" -a="xxx" container_name container_id 
+dockerfile编写：
+image制作：docker build -t container_name .
+制作基础镜像：base images 
+设置镜像标签：docker tag
+
+4、容器的网络、命名
+docker run --name
+docker inspect bridge
+docker network ls
+docker network inspect bridge
+docker run --network=
+
+容器默认网桥网络：docker0(即默认bridge模式)
+docker 创建容器网络的初始步骤:
+1、创建一对虚拟网卡设备
+2、一块留在宿主机网络Namespace中并绑定到docker默认网桥docker0上
+3、另一块放入新创建的容器net namespace中
+
+另外还有：
+host模式：与宿主机共用net namespace；--net=host
+container模式：与另一个容器共用同一个net namespace
+none模式：--net=none，需要手动为该容器创建network namespace
+
+网络端口映射：docker run -d -P images_name app.py (默认映射容器5000Tcp)
+                          docker run -d -p 80:5000 images_name app.py (指定Host80端口映射容器5000Tcp)
+                         docker run -d -p 80-90:5000 images_name app.py (指定Host80-90端口范围映射容器5000Tcp)
+docker Deamon 相关网络配置（可以在/etc/systemd/system/docker.service文件中进行配置,或在/etc/systemd/system/docker.service.d目录下添加conf配置文件描述，见proxy代理添加）
+配置项包括：
+EnableIptables :即--iptables 是否允许docker daemon在宿主机上添加iptables规则
+EnableIpForward :即--ip-forward 打开系统IP数据报文转发功能
+EnableIpMasq：即--ip-masq:SNAT默认开启
+Iface : --bridge 指定容器网桥
+IP: --bip 指定容器IP地址
+FixedCIDR：  --fixed-cidr 限制docker 容器IP地址分配
+
+
+5、docker中管理数据
+数据卷
+
+6、docker镜像与容器存储结构分析
+
