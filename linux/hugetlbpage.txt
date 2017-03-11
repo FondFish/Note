@@ -1,0 +1,28 @@
+1，数据包直接传递到业务逻辑，而不是经过Linux内核协议栈。这是很明显的事情，因为我们知道，Linux协议栈是复杂和繁琐的，数据包经过它无非会导致性能的巨大下降，并且会占用大量的内存资源，之前有同事测试过，Linux内核要吃掉2.5KB内存/socket。我研究过很长一段时间的DPDK源码，其提供的82576和82599网卡驱动就直接运行在应用层，将接管网卡收到的数据包直接传递到应用层的业务逻辑里进行处理，而无需经过Linux内核协议栈。当然，发往本服务器的非业务逻辑数据包还是要经过Linux内核协议栈的，比如用户的SSH远程登录操作连接等。
+2，多线程的核间绑定。一个具有8核心的设备，一般会有1个控制面线程和7个或8个数据面线程，每一个线程绑定到一个处理核心（其中可能会存在一个控制面线程和一个数据面线程都绑定到同一个处理核心的情况）。这样做的好处是最大化核心CACHE利用、实现无锁设计、避免进程切换消耗等等
+3，内存是另外一个核心要素，常见的内存池设计必须在这里得以切实应用。有几个考虑点，首先，可以在Linux系统启动时把业务所需内存直接预留出来，脱离Linux内核的管理。第二，Linux一般采用4K每页，而我们可以采用更大内存分页，比如2M，这样能在一定程度上减少地址转换等的性能消耗。
+
+Linux下hugetlbpage
+
+就Linux应用程序而言，使用的都是虚拟地址，当应用程序读写一个指定的虚拟地址时，内存管理单元会自动进行虚拟地址到物理地址的转换。一个虚拟地址可以映射到多个物理地址，但当前映射到哪一个物理地址取决于当前的页表（Page Table，一个虚拟地址到物理地址的映射转换表）内容，页表存储在主存储器中，查询速度相对比较慢。为了提高地址转换性能，大多数体系架构都提供一个快速查找缓冲TLB（Translation Lookaside Buffer），TLB读写速度非常快，比如在X86体系架构上，TLB和普通的CPU CACHE并没有本质区别，只不过TLB专职用于缓存页表数据，而普通的CPU CACHE缓存实际的代码指令或数据。TLB缓冲了最近使用过的页表项，在进行虚拟地址到物理地址的转换时先查这个TLB缓冲，只有当查找TLB缓冲失败（TLB miss）后才再去查普通页表（好像有的架构是同时进行查找？）。当然，根据局部性原理，大多数情况下应该都是查找TLB缓冲命中（TLB hit）的，所以性能得以大大提升。这整个具体的页表查找与地址转换过程不是文本描述的重点，但我们需知道如下几点：
+1，TLB缓冲能大大提升虚拟地址到物理地址的转换速度。
+2，TLB缓冲大小有限，只能缓存一定量的页表项目（Entry）。
+3，如果一个页越大，那么一个页表项目就能表示越多的地址空间，整个TLB缓冲命中的几率就越大。
+在Linux平台上，页大小普遍为4K，但根据硬件架构的不同，Linux内核也支持更大的内存页，也就是本文要介绍的HugeTLB特性。
+要使用HugeTLB特性，当然需要首先打开内核的相关编译选项：
+要使用HugeTLB特性，当然需要首先打开内核的相关编译选项：
+cat  /usr/src/linux-headers-4.4.0-38-generic/.config | grep HUGETLB
+
+查看HugePages信息：cat /proc/meminfo | grep Huge
+其中：
+HugePages_Total：系统当前总共拥有的HugePages数目。
+HugePages_Free：系统当前总共拥有的空闲HugePages数目。
+HugePages_Rsvd：系统当前总共保留的HugePages数目，更具体点就是指程序已经向系统申请，但是由于程序还没有实质的HugePages读写操作，因此系统尚未实际分配给程序的HugePages数目。
+HugePages_Surp：指超过系统设定的常驻HugePages数目的数目。
+Hugepagesize：每一页HugePages的大小。
+
+glibc中提供了backtrace()和backtrace_symbols()两个函数来输出和解析程序的call stack，详情见man backtrace。
+
+__builtin_expect：与0比就是不太可能出现的分支，便于编译器优化流程
+#define G_LIKELY(expr) (__builtin_expect (_G_BOOLEAN_EXPR(expr), 1))
+#define G_UNLIKELY(expr) (__builtin_expect (_G_BOOLEAN_EXPR(expr), 0))
