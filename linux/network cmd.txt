@@ -1,0 +1,53 @@
+ping IP: -c 包个数；-s 包大小
+例：ping -c 3 10.10.91.73 -s 100
+
+查看机器用户名：hostname
+设置主机名：host name
+
+dns网站：host url；dig url；
+跟踪路由：traceroute IP;tracepath IP
+
+增删路由记录：
+
+#route -n  ：显示路由
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+200.254.0.53    192.254.7.138   255.255.255.255 UGH   0      0        0 eth0
+
+增加路由记录：
+	route add -net 192.168.62.0 netmask 255.255.255.0 gw 192.168.1.1
+
+删除路由记录
+	route del -net 192.168.122.0 netmask 255.255.255.0
+
+     route del -host 200.254.0.51 gw 192.254.8.138
+
+添加默认路由：route add default gw 10.0.10.62
+配置网卡IP：ifconfig eth0 10.0.1.4/24 up  永久增加或修改当前接口的地址，最好直接编辑网卡配置文件/etc/network/interface，然后重启网络systemctl restart network或service network restart生效
+
+sudo ipconfig set en0 DHCP    更新DHCP租约。设备将释放IP地址，再从DHCP服务器重新获得IP地址。
+sudo ipconfig set en0 INFORM 192.168.0.120   将接口en0设定为静态IP地址。
+
+开启路由转发功能：echo 1 > /proc/sys/net/ipv4/ip_forward
+
+将eth1的网卡关闭：ifdown eth1
+
+添加DNS：sudo echo nameserver 10.10.9.9>> /etc/resolv.conf
+
+ssh连接出错，提示有些协议不支持：更改ssh config: Ciphers aes128-cbc
+
+重启ssh服务:sudo systemctl restart sshd.service
+
+查看ssh运行状态：sudo systemctl status ssh.service
+
+重启网络管理服务：sudo systemctl restart network-manger.service
+
+网桥相关：
+创建网桥br0:  sudo brctl addbr br0
+启动新创建的网桥br0：sudo ip link set dev br0 up
+为网桥br0添加IP: sudo ip addr add 10.10.90.23 dev br0
+将网卡设备eno1桥接在网桥br0上： sudo brctl addif br0 eno1
+
+tcpdump：
+tcpdump -i eth0 host 192.254.8.16  -w 1.cap 
+sudo tcpdump -i eth1 src 192.168.1.200 ：显示eth1接口，来自192.168.1.200的通信
