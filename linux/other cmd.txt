@@ -1,0 +1,13 @@
+压缩打包成bz2： tar -jcvf  生成的文件名.tar.bz2  要压缩的文件路径
+解压缩bz2:	     tar -jxvf   要解压的文件名.tar.bz2  解压后的文件路径
+
+df -h 查看磁盘使用状况
+free 查看系统剩余内存，以kb为单位 或free -m 以M为单位显示
+    
+
+wc：统计行数 词数 字符数 -c  -l  -m -w     例：wc  -m file1
+stat ：统计文件属性 stat file
+ln file1 file2：为file1创建硬链接file2,硬链接删除必须两个都要删除
+ln -s file1 file2：为file1创建软链接file2，软连接删除file1后file2也不存在了
+
+sed -i 's/\r$//' filename：windows格式转为linux
