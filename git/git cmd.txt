@@ -1,0 +1,119 @@
+
+git命令：
+   git status                                   查看当前哪些文件做了修改
+   git add                                      把修改的文件加入本地库
+   git rm                                      删除文件修改加入本地库
+   git commit -m "合入说明（根据合入情况填写）"   填写更改原因
+   git push                                     最终把代码推到远程库，即完成合入。
+
+查看分支：git branch
+创建分支：git branch <name>
+切换分支：git checkout <name>
+创建+切换分支：git checkout -b <name>
+合并某分支到当前分支：git merge <name>
+删除分支：git branch -d <name>
+
+git init 初始化本地库
+git config 配置用户名和邮箱
+git config --list 显示配置
+
+git log --pretty=format:'%h-%ai-%an-%s' --date=local
+用git log --graph命令可以看到分支合并图
+git log --pretty=oneline --abbrev-commit
+git cat-file -p 51635b38bbd8b11a0ba07100fb7fd9e61321e355
+
+鉴于目前大家对GIT分支使用不熟练，请大家尽量使用git.py clonebr 命令， 避免使用git.py clone命令
+
+操作git pull 及arc branch时请确保当前在sdrdev分支。
+
+1. python git.py clonebr v3.4dev sdrxa sdrdev  命令：（不需要master分支的同事请使用该命令）
+
+ 该命令只会clone出 单个远程分支sdrdev，一般开发同事只需要这个分支，所以建议开发同事使用该命令
+
+2. python git.py clone v3.4dev sdrxa sdrdev  命令：（需要master分支的同事请使用该命令）
+ 
+ 该命令会clone出 两个分支sdrdev 和master分支，默认当前分支为sdrdev 分支。
+
+
+python git.py branch <workdir> <newbranch>
+
+python git.py clonebr <workdir> <team> <remotebranch>
+
+arc land
+
+先有本地库，后有远程库的时候，如何关联远程库
+
+1、添加远程仓库代码（远程仓库名称：origin）
+git remote add -f origin ssh://10168348@10.43.177.215:29418/lmh
+git remote add -f origin ssh://10168348@gerrit.zte.com.cn:29418/sdr/UTCA 
+
+2、显示远程仓库分支
+E:\gitTest>git branch -a
+  remotes/origin/master
+或者：查看远程库的信息，用git remote
+或者，用git remote -v显示更详细的信息：
+
+3、将本地分支对接到远程仓库分支
+git branch --track master origin/master
+
+4、将本地master分支代码推送到远程仓库
+git push -u origin master
+如果要推送其他分支，比如dev，就改成：git push origin dev
+
+还可以将远程库克隆到本地库
+git clone ssh://10168348@10.43.177.215:29418/lmh
+
+git config --global url."ssh://10168348@gerrit".pushInsteadOf "ssh://10168348@gerritro"
+
+git 分支相关
+git branch：显示所有分支（*代表当前分支）
+git checkout -b dev ：创建并切换到新分支dev
+git checkout master：切换到master分支
+git merge dev：在master分支下合并dev分支
+git branch -d dev:  删除dev分支
+git checkout -b branch-name origin/branch-name  在本地创建和远程分支对应的分支，本地和远程分支的名称最好一致；
+git branch --set-upstream-to=origin/master dev：将本地dev分支关联远程仓库分支
+如果要丢弃一个没有被合并过的分支，可以通过git branch -D <name>强行删除
+git push origin --delete dev：强行删除远程分支 需要push force权限
+
+git 标签
+git checkout master： 首先切换到需要打标签的分支上  
+git tag v1.0  然后使用git tag <name>就可以打一个新标签   默认标签是打在最新提交的commit上的
+git tag  查看所有标签
+git log --pretty=oneline --abbrev-commit    显示历史commit
+git tag v0.9 6224937    对历史提交的commit打标签 
+git show <tagname>  查看标签信息，标签不是按时间顺序列出，而是按字母排序的
+git tag -a v0.1 -m "version 0.1 released" 3628164  创建带有说明的标签，用-a指定标签名，-m指定说明文字
+git tag -d v0.1：删除标签
+git push origin <tagname>：推送标签至远程
+git push origin --tags可以推送全部未推送过的本地标签；
+git push origin :refs/tags/<tagname>可以删除一个远程标签。
+git checkout -b branch_name tag_name：从tag分支上拉取新分支
+
+git reset [--soft] HEAD: 用HEAD分支覆盖一下暂存区,不影响本地文件（add 错了 丢弃暂存区的修改）
+
+git reset --hard commit_id :  已经commit到本地分支，不想要了重新切回到历史commit节点
+git取消本地的修改，用本地仓库覆盖
+git checkout -- codeUniPB/header/platapi/brs/bbu_brs_pub.h
+
+单独拉库中指定文件
+git config core.sparsecheckout true
+git read-tree -mu HEAD
+
+GIT删除文件 先删除本地 再使用git rm命令
+git rm PROJECTS.md
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
