@@ -1,0 +1,22 @@
+nameSpace 相关操作的API：
+  clone 、setns 、unshare、/proc/$pid/ns
+
+ 1、UTS name space:
+   execv clone sethostname 
+   CLONE_NEWUTS
+2、IPC name space
+   ipcmk -Q：创建消息队列
+   ipcs -q：显示消息队列
+   CLONE_NEWIPC
+3、PID name space 
+   CLONE_NEWPID 、echo $$
+  父节点的pid namespace中进程可以发kill stop信号给子节点的pid namespace 中的init进程，以结束该namespace中的所有进程
+   对/proc文件系统进行隔离：重新挂载proc文件系统 mount -t proc proc /proc (最好在mount隔离时做)
+4、mount namespace
+   CLONE_NEWNS
+5、network namespace
+   CLONE_NEWNET
+6、user namespace
+   CLONE_NEWUSER
+cgroups：把一个任务放进一个组里加以系统资源控制（物理资源cpu 内存 IO等）
+  
