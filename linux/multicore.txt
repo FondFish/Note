@@ -1,0 +1,73 @@
+cpu affinity
+      cpu affinity，即cpu亲和性，简单点说就是让某一段代码/数据尽量在同一个或几个cpu核心上长时间运行/计算的机制。为什么需要这样的机制？之前说过，最直观的好处就是能够大大提高cpu cache的命中率，提高性能，
+而更多的好处无需多说，在用到时自然能够体会到。
+    利用glibc库中的sched_getaffinity接口，我们获取应用程序当前的cpu亲和性，而通过sched_setaffinity接口则可以把应用程序绑定到固定的某个或某几cpu上运行。这两个接口的定义如下：
+
+#include <sched.h>
+ 
+int sched_setaffinity(pid_t pid, unsigned int cpusetsize,
+                      cpu_set_t *mask);
+ 
+int sched_getaffinity(pid_t pid, unsigned int cpusetsize,
+                      cpu_set_t *mask);
+ 
+void CPU_CLR(int cpu, cpu_set_t *set);
+int CPU_ISSET(int cpu, cpu_set_t *set);
+void CPU_SET(int cpu, cpu_set_t *set);
+void CPU_ZERO(cpu_set_t *set);
+其中的cpu_set_t结构体的具体定义在glibc库的头文件/usr/include/bits/sched.h内：
+# define __CPU_SETSIZE  1024
+# define __NCPUBITS (8 * sizeof (__cpu_mask))
+ 
+/* Type for array elements in 'cpu_set'.  */
+typedef unsigned long int __cpu_mask;
+ 
+typedef struct
+{
+  __cpu_mask __bits[__CPU_SETSIZE / __NCPUBITS];
+} cpu_set_t;
+可以看到其用每一bit位表示一个cpu的状态，最多可以表示1024 cpu的亲和状态，这在目前来说足够用了，另外的几个宏CPU_CLR\CPU_ISSET\CPU_SET\CPU_ZERO定义也都定义在头文件/usr/include/bits/sched.h内：
+/* Access functions for CPU masks.  */
+# define __CPU_ZERO(cpusetp) \
+  do {                                        \
+    unsigned int __i;                                 \
+    cpu_set_t *__arr = (cpusetp);                         \
+    for (__i = 0; __i < sizeof (cpu_set_t) / sizeof (__cpu_mask); ++__i)      \
+      __arr->__bits[__i] = 0;                              \
+  } while (0)
+# define __CPU_SET(cpu, cpusetp) \
+  ((cpusetp)->__bits[__CPUELT (cpu)] |= __CPUMASK (cpu))
+# define __CPU_CLR(cpu, cpusetp) \
+  ((cpusetp)->__bits[__CPUELT (cpu)] &= ~__CPUMASK (cpu))
+# define __CPU_ISSET(cpu, cpusetp) \
+  (((cpusetp)->__bits[__CPUELT (cpu)] & __CPUMASK (cpu)) != 0)
+#endif
+利用这几个宏方便我们操作指定cpu的对应bit位，比如清零，置位等。
+
+
+__thread ： __thread是GCC内置的线程局部存储设施，存取效率可以和全局变量相比。__thread变量每一个线程有一份独立实体，各个线程的值互不干扰。可以用来修饰那些带有全局性且值可能变，但是又不值得用全局变量保护的变量。
+__thread使用规则：只能修饰POD类型(类似整型指针的标量，不带自定义的构造、拷贝、赋值、析构的类型，二进制内容可以任意复制memset,memcpy,且内容可以复原)，不能修饰class类型，因为无法自动调用构造函数和析构函数，可以用于修饰全局变量，函数内的静态变量，不能修饰函数的局部变量或者class的普通成员变量，
+且__thread变量值只能初始化为编译器常量(值在编译器就可以确定const int i=5,运行期常量是运行初始化后不再改变const int i=rand()).
+
+int pthread_setcanceltype(int type, int *oldtype)   
+设置本线程取消动作的执行时机，type由两种取值：PTHREAD_CANCEL_DEFFERED和PTHREAD_CANCEL_ASYCHRONOUS，仅当Cancel状态为Enable时有效，分别表示收到信号后继续运行至下一个取消点再退出和立即执行取消动作（退出）；
+oldtype如果不为NULL则存入运来的取消动作类型值。
+
+　GCC下：
+	__FILENAME__     __LINE__     (char * )__func__
+1. __init
+      位置：/include/linux/init.h
+      定义: #define __init   __attribute__ ((__section__ (".init.text")))
+      注释：这个标志符和函数声明放在一起，表示gcc编译器在编译时，需要把这个函数放在.text.init Section 中，而这个Section 在内核完成初始化之后，就会被释放掉。
+　　举例：asmlinkage void __init star_kerne(void) { ... }
+　2. asmlinkage
+　　位置：/include/linux/linkage.h
+　　定义：#define asmlinkage CPP_ASMLINKAGE  __attribute__((regparm(0)))
+　　注释：这个标志符和函数声明放在一起，带regparm(0)的属性声明告诉gcc编译器，该函数不需要通过任何寄存器来传递参数，参数只是通过堆栈来传递。gcc编译器在汇编过程中调用c语言函数时传递参数有两种方法：一种是通过堆栈，另一种是通过寄存器。缺省时采用寄存器，假如你要在你的汇编过程中调用c语言函数，并且想通过堆栈传递参数，你定义的 c 函数时要在函数前加上宏asmlinkage。
+　　举例：asmlinkage void __init start_kernel(void) { ... }
+3、FASTCALL ()
+　　位置：/include/linux/kernel.h
+　　定义：#define FASTCALL(x)  x  __attribute__((regparm(3)))
+　　注释：这个标志符和函数声明放在一起，带regparm(3)的属性声明告诉gcc编译器，这个函数可以通过寄存器传递多达3个的参数，这3个寄存器依次为EAX、EDX 和 ECX。更多的参数才通过堆栈传递。这样可以减少一些入栈出栈操作，因此调用比较快。
+　　举例：extern void FASTCALL(__switch_to(struct task_struct *prev, struct task_struct *next))
+　　这个例子中，prev将通过eax，next通过edx传递。
