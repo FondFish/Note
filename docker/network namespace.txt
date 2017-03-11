@@ -1,0 +1,70 @@
+network namespace：
+一：使用ip netns 命令操作network namespace
+1、查看系统存在的network namespace:
+   sudo ip netns list （显示原理是查找/var/run/netns目录）
+2、创建network namespace
+  sudo ip netns add $name
+3、删除network namespace
+  sudo ip netns delete $name
+4、进入network namespace
+  sudo ip netns exec $name bash
+5、不进入network namespace 查看其相关信息：
+  sudo ip netns exec $name $command
+  如：sudo ip netns exec $name ip addr
+      sudo ip netns exec $name ip link
+      sudo ip netns exec $name ip route
+二 使用ip命令配置network namespace
+1、启动network namespace默认的回环网卡lo
+  sudo ip netns exec $name ip link set dev lo up
+2、在主机上创建两个虚拟网卡设备：veth-a 和 veth-b 
+  sudo ip link add veth-a type veth peer name veth-b
+3、veth-b网卡添加到创建的network namespace中，veth-a留在主机上
+  sudo ip link set veth-b netns $name
+4、为veth-a veth-b 两个虚拟网卡分配ip并启动
+veth-a:
+  sudo ip addr add 10.0.0.1/24 dev veth-a
+  sudo ip link set dev veth-a up
+veth-b:
+  sudo ip netns exec $name ip addr add 10.0.0.2/24 dev veth-b
+  sudo ip netns exec $name ip link set dev veth-b up 
+   三 将两个network namespace连接起来
+   将配置的一对虚拟网卡设备分别放入两个容器即可
+   四 使用ip命令配置docker容器网络
+   1、将容器下的network namespace链接到/var/run/netns目录下
+   sudo ln -s /proc/$container_pid/ns/net /var/run/netns/$container_name
+   
+
+命令打通容器大网 本机 10.10.91.70 网关 10.10.91.65
+1、创建自定义网桥br0,并绑定原网卡IP，取消原网关并绑定到br0网桥上
+sudo docker run -it --name=test1 --net=none pro_pxe2 /bin/bash
+sudo brctl addbr br0
+sudo ip link set br0 up
+sudo ip addr add 10.10.91.70/24 dev br0
+sudo ip addr del 10.10.91.70 dev eno1
+sudo brctl addif br0 eno1
+2、增配网桥br0的默认路由
+sudo ip route del default
+sudo route add default gw 10.10.91.65 dev br0
+3、获取容器pid并添加到network namespace空间下
+pid=$(sudo docker inspect --format '{{ .State.Pid }}' test1)
+mkdir -p /var/run/netns
+sudo ln -s /proc/$pid/ns/net /var/run/netns/$pid
+4、创建两个虚拟网卡其中一个放入网桥
+sudo ip link add veth-a type veth peer name veth-b
+sudo brctl addif br0 veth-a
+sudo ip link set dev veth-a up
+5、另一个虚拟网卡放入容器network namespace中,并重命名为eno1,配置地址为10.10.91.71
+sudo ip link set veth-b netns $pid
+sudo ip netns exec $pid ip link set veth-b name eno1
+sudo ip netns exec $pid ip link set eno1 up
+sudo ip netns exec $pid ip addr add 10.10.91.71/24 dev eno1
+sudo ip netns exec $pid ip route add default via 10.10.91.65
+
+
+
+
+
+
+
+
+  
