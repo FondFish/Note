@@ -1,0 +1,33 @@
+函数指针是实现多态的手段，多态就是隔离变化的秘诀
+定义函数指针类型：
+typedef DListRet (*DListDataPrintFunc)(void* data);
+声明dlist_print函数：
+DListRet dlist_print(DList* thiz, DListDataPrintFunc print);
+实现dlist_print函数：
+DListRet dlist_print(DList* thiz, DListDataPrintFunc print)
+{
+DListRet ret = DLIST_RET_OK;
+DListNode* iter = thiz->first;
+while(iter != NULL)
+{
+print(iter->data);
+iter = iter->next;
+}
+return ret;
+}
+调用方法
+static DListRet print_int(void* data)
+{
+printf("%d ", (int)data);
+return DLIST_RET_OK;
+}
+…
+dlist_print(dlist, print_int);
+
+
+通俗的说，bss 段是用来存放那些没有初始化的和初始化为0的全局变量的。bss类型的全局变量只占运行时的内存空间，而不占用文件空间。
+通俗的说，data 段用来存放那些初始化为非零的全局变量。data 类型的全局变量是即占文件空间，又占用运行时内存空间的。
+常量数据 (.rodata段)。rodata的意义同样明显，ro 代表read only，rodata就是用来存放常量数据的。由于rodata 在只读的内存页面(page)中，是受保护的，任何试图对它的修改都会被及时发现，这可以提高程序的稳定性。字符串会被编译器自动放到rodata中，其它数据要放到rodata中，只需要加const 关键字修饰就好了。
+代码 (.text段)存放代码(如函数)和部分整数常量，这个段是可以执行的。
+栈用于存放临时变量和函数参数。通常情况下，栈向下（低地址）增长，每向栈中 PUSH一个元素，栈顶就向低地址扩展，每从栈中POP 一个元素，栈顶就向高地址回退。
+堆是最灵活的一种内存，它的生命周期完全由使用者控制。 linux下有valgrind，检查有没有内存泄露或者缓冲区溢出。
