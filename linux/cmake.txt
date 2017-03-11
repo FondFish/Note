@@ -1,0 +1,168 @@
+ddev
+cmake工具链
+http://www.cnblogs.com/the-capricornus/p/5446149.html
+
+命令
+project() 
+enable_language()
+try_compile()
+变量
+CMAKE_<LANG>_COMPILER
+CMAKE_<LANG>_COMPILER_ID
+CMAKE_<LANG>_COMPILER_VERSION
+CMAKE_<LANG>_FLAGS
+CMAKE_TOOLCHAIN_FILE
+CMAKE_CROSSCOMPILING
+CMAKE_SYSTEM_NAME
+CMAKE_SYSTEM_PROCESSOR
+CMAKE_SYSROOT
+CMAKE_STAGING_PREFIX
+CMAKE_FIND_ROOT_PATH
+find_* 
+CMAKE_FIND_ROOT_PATH_MODE_*
+CMAKE_<LANG>_COMPILER_EXTERNAL_TOOLCHAIN
+CMAKE_<LANG>_COMPILER_TARGET
+CMAKE_GENERATOR_PLATFORM
+CMAKE_SYSTEM_VERSION
+CMAKE_GENERATOR_TOOLSET
+属性
+ENABLED_LANGUAGES
+LINKER_LANGUAGE
+POSITION_INDEPENDENT_CODE
+<LANG>_VISIBILITY_PRESET
+VISIBILITY_INLINES_HIDDEN
+宏
+CheckCXXSourceCompiles
+CheckCXXSymbolExists
+CheckIncludeFile
+一些参考
+CMAKE_CXX_COMPILER
+CMAKE_CXX_COMPILER_ID
+CMAKE_CXX_COMPILER_TARGET
+CMAKE_C_COMPILER
+CMAKE_CXX_COMPILER_ID
+CMAKE_CXX_COMPILER_TARGET
+CMAKE_FIND_ROOT_PATH_MODE_PROGRAM
+CMAKE_FIND_ROOT_PATH_MODE_LIBRARY
+CMAKE_FIND_ROOT_PATH_MODE_INCLUDE
+CMAKE_FIND_ROOT_PATH_MODE_PACKAGE
+Introduction
+CMake uses a toolchain of utilities to compile, link libraries and create archives, and other tasks to drive the build. The toolchain utilities available are determined by the languages enabled. In normal builds, CMake automatically determines the toolchain for host builds based on system introspection and defaults. In cross-compiling scenarios, a toolchain file may be specified with information about compiler and utility paths.
+CMake使用(实用工具)工具链编译、链接库和创建归档，和其它任务去驱动构建。启用的(编程)语言决定工具链工具。在常规构建中，CMake基于系统自检和缺省自动为宿主构建决定工具链。在交叉编译的情况下，可以通过相关的编译器和工具路径来指定工具链文件。
+Languages
+Languages are enabled by the project() command. Language-specific built-in variables, such as CMAKE_CXX_COMPILER, CMAKE_CXX_COMPILER_ID etc are set by invoking the project() command. If no project command is in the top-level CMakeLists file, one will be implicitly generated. By default the enabled languages are C and CXX:
+语言是由project()命令启用的。指定语言的内置变量(如CMAKE_CXX_COMPILER\CMAKE_CXX_COMPILER_ID等)在调用project()命令时被设置。如果在顶层的CMakeLists文件中没有project()命令，将生成一个隐式的。缺省启用的语言是C和CXX：
+project(C_Only C)
+A special value of NONE can also be used with the project() command to enable no languages:
+在 project() 命令中指定 NONE 将不启用任何语言：
+project(MyProject NONE)
+The enable_language() command can be used to enable languages after the project() command:
+在 project() 命令之后，可以使用 enable_language() 命令来启用语言:
+enable_language(CXX)
+When a language is enabled, CMake finds a compiler for that language, and determines some information, such as the vendor and version of the compiler, the target architecture and bitwidth, the location of corresponding utilities etc.
+当一个语言被启用，CMake为该语言查找编译器，决定一些信息，如编译器的供应商和版本，目标架构和位宽，相应工具的位置等。
+The ENABLED_LANGUAGES global property contains the languages which are currently enabled.
+全局属性ENABLED_LANGUAGES包含当前启用的语言。
+Variables and Properties
+Several variables relate to the language components of a toolchain which are enabled. CMAKE_<LANG>_COMPILER is the full path to the compiler used for <LANG>. CMAKE_<LANG>_COMPILER_ID is the identifier used by CMake for the compiler and CMAKE_<LANG>_COMPILER_VERSION is the version of the compiler.
+几个关于工具链条的语言组件的变量被启用。CMAKE_<LANG>_COMPILER 是用于 <LANG> 编译器的全路径。CMake使用 CMAKE_<LANG>_COMPILER_ID 作为编译器识别，CMAKE_<LANG>_COMPILER_VERSION 是编译器的版本。
+The CMAKE_<LANG>_FLAGS variables and the configuration-specific equivalents contain flags that will be added to the compile command when compiling a file of a particular language.
+CMAKE_<LANG>_FLAGS 变量和对应的具体配置包含将被添加到编译命令的标志，在特定语言编译文件时。
+As the linker is invoked by the compiler driver, CMake needs a way to determine which compiler to use to invoke the linker. This is calculated by the LANGUAGE of source files in the target, and in the case of static libraries, the language of the dependent libraries. The choice CMake makes may be overridden with the LINKER_LANGUAGE target property.
+连接器被编译驱动器调用。CMake需要一个方法去决定使用哪个编译器去调用链接器。这个通过目标中的源文件的语言来计算，在静态库的情况下，也通过依赖库的语言来计算。CMake做出的选择可能被目标属性 LINKER_LANGUAGE 重写。
+Toolchain Features
+CMake provides the try_compile() command and wrapper macros such as CheckCXXSourceCompiles, CheckCXXSymbolExists and CheckIncludeFile to test capability and availability of various toolchain features. These APIs test the toolchain in some way and cache the result so that the test does not have to be performed again the next time CMake runs.
+CMake提供 try_compile() 命令和宏测试各种工具链功能的性能和有效性，比如 CheckCXXSourceCompiles, CheckCXXSymbolExists 和 CheckIncludeFile。这些 API 测试工具链使用一些方法和缓存结果，使测试不一定在下一次CMake运行时再次被执行。
+Some toolchain features have built-in handling in CMake, and do not require compile-tests. For example, POSITION_INDEPENDENT_CODE allows specifying that a target should be built as position-independent code, if the compiler supports that feature. The <LANG>_VISIBILITY_PRESET and VISIBILITY_INLINES_HIDDEN target properties add flags for hidden visibility, if supported by the compiler.
+一些工具链功能在CMake中有内置处理，不请求编译测试。例如，POSITION_INDEPENDENT_CODE 允许指定目标被构建作为位置无关代码，如果编译器支持此项特性。目标属性 <LANG>_VISIBILITY_PRESET 和 VISIBILITY_INLINES_HIDDEN 添加标志以隐藏可见性，如果编译器支持此功能。
+Cross Compiling
+If cmake(1) is invoked with the command line parameter -DCMAKE_TOOLCHAIN_FILE=path/to/file, the file will be loaded early to set values for the compilers. The CMAKE_CROSSCOMPILING variable is set to true when CMake is cross-compiling.
+如果cmake被调用携带命令行参数 -DCMAKE_TOOLCHAIN_FILE=path/to/file，文件将被提前加载以为编译器设置值。在交叉编译时CMAKE_CROSSCOMPILING变量将被设置为真值。
+Cross Compiling for Linux
+A typical cross-compiling toolchain for Linux has content such as:
+一个典型的linux下的交叉编译工具链内容如下：
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+
+set(CMAKE_SYSROOT /home/devel/rasp-pi-rootfs)
+set(CMAKE_STAGING_PREFIX /home/devel/stage)
+
+set(tools /home/devel/gcc-4.7-linaro-rpi-gnueabihf)
+set(CMAKE_C_COMPILER ${tools}/bin/arm-linux-gnueabihf-gcc)
+set(CMAKE_CXX_COMPILER ${tools}/bin/arm-linux-gnueabihf-g++)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+The CMAKE_SYSTEM_NAME is the CMake-identifier of the target platform to build for.
+CMAKE_SYSTEM_NAME 是将要构建的目标平台的CMake识别。
+The CMAKE_SYSTEM_PROCESSOR is the CMake-identifier of the target architecture to build for.
+CMAKE_SYSTEM_PROCESSOR 是将要构建的目标架构的CMake识别。
+The CMAKE_SYSROOT is optional, and may be specified if a sysroot is available.
+CMAKE_SYSROOT 是一个选项，在sysroot有效时被指定。
+The CMAKE_STAGING_PREFIX is also optional. It may be used to specify a path on the host to install to. The CMAKE_INSTALL_PREFIX is always the runtime installation location, even when cross-compiling.
+CMAKE_STAGING_PREFIX 也是一个选项。可以指定宿主机的安装路径。CMAKE_INSTALL_PREFIX指定运行时安装位置，即时在交叉编译环境下。
+The CMAKE_<LANG>_COMPILER variables may be set to full paths, or to names of compilers to search for in standard locations. In cases where CMake does not have enough information to extract information from the compiler, the CMakeForceCompiler module can be used to bypass some of the checks.
+CMAKE_<LANG>_COMPILER 变量可以是全路径，或者是编译器将要查找的标准位置。一旦CMake不能从编译器提取到足够的信息，CMakeForceCompiler 模块可以做一些旁路检查。
+CMake find_* commands will look in the sysroot, and the CMAKE_FIND_ROOT_PATH entries by default in all cases, as well as looking in the host system root prefix. Although this can be controlled on a case-by-case basis, when cross-compiling, it can be useful to exclude looking in either the host or the target for particular artifacts. Generally, includes, libraries and packages should be found in the target system prefixes, whereas executables which must be run as part of the build should be found only on the host and not on the target. This is the purpose of the CMAKE_FIND_ROOT_PATH_MODE_* variables.
+find_*命令将在sysroot中查找，CMAKE_FIND_ROOT_PATH 在所有情况下是缺省的条目，包括查找宿主系统的根前缀。虽然基于不同的情况这可以被控制，当交叉编译时，它在排除查找主机或者特定工件的目标时是有用的。通常，包含文件，库文件和包在目标系统预处理时被发现，而那些作为构建的一部分的必须运行的可执行程序仅仅在宿主和非目标上被发现。这是 CMAKE_FIND_ROOT_PATH_MODE_* 变量的目的。
+Cross Compiling using Clang
+Some compilers such as Clang are inherently cross compilers. The CMAKE_<LANG>_COMPILER_TARGET can be set to pass a value to those supported compilers when compiling:
+一些编译器是交叉编译固有的，如 Clang。当编译时，可以设置 CMAKE_<LANG>_COMPILER_TARGET 去传递值到支持的编译器：
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+
+set(triple arm-linux-gnueabihf)
+
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_C_COMPILER_TARGET ${triple})
+set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_CXX_COMPILER_TARGET ${triple})
+Similarly, some compilers do not ship their own supplementary utilities such as linkers, but provide a way to specify the location of the external toolchain which will be used by the compiler driver. The CMAKE_<LANG>_COMPILER_EXTERNAL_TOOLCHAIN variable can be set in a toolchain file to pass the path to the compiler driver.
+同样，有些编译器不传送他们自己的辅助工具，像连接器啊，但是提供方法来指定外部工具链的位置供编译驱动器使用。可以在工具链文件设置 CMAKE_<LANG>_COMPILER_EXTERNAL_TOOLCHAIN 变量去传递路径给编译驱动。
+Cross Compiling for QNX
+As the Clang compiler the QNX QCC compile is inherently a cross compiler. And the CMAKE_<LANG>_COMPILER_TARGET can be set to pass a value to those supported compilers when compiling:
+像Clang编译器一样，QNX QCC 编译器也是一个跨平台编译器。当编译时，可以设置 CMAKE_<LANG>_COMPILER_TARGET 去传递值到支持的编译器：
+set(CMAKE_SYSTEM_NAME QNX)
+
+set(arch gcc_ntoarmv7le)
+
+set(CMAKE_C_COMPILER qcc)
+set(CMAKE_C_COMPILER_TARGET ${arch})
+set(CMAKE_CXX_COMPILER QCC)
+set(CMAKE_CXX_COMPILER_TARGET ${arch})
+Cross Compiling for Windows CE
+Cross compiling for Windows CE requires the corresponding SDK being installed on your system. These SDKs are usually installed under C:/Program Files (x86)/Windows CE Tools/SDKs.
+Windows CE的跨平台编译需要系统上装有对应的SDK。这些SDK通常安装在 C:/Program Files (x86)/Windows CE Tools/SDKs 。
+A toolchain file to configure a Visual Studio generator for Windows CE may look like this:
+为 Windows CE 配置 Visual Studio 生成器的工具链文件，如下：
+set(CMAKE_SYSTEM_NAME WindowsCE)
+
+set(CMAKE_SYSTEM_VERSION 8.0)
+set(CMAKE_SYSTEM_PROCESSOR arm)
+
+set(CMAKE_GENERATOR_TOOLSET CE800) # Can be omitted for 8.0
+set(CMAKE_GENERATOR_PLATFORM SDK_AM335X_SK_WEC2013_V310)
+The CMAKE_GENERATOR_PLATFORM tells the generator which SDK to use. Further CMAKE_SYSTEM_VERSION tells the generator what version of Windows CE to use. Currently version 8.0 (Windows Embedded Compact 2013) is supported out of the box. Other versions may require one to set CMAKE_GENERATOR_TOOLSET to the correct value.
+CMAKE_GENERATOR_PLATFORM 告诉生成器使用哪一个SDK。此外CMAKE_SYSTEM_VERSION告诉生成器Windows CE的版本。目前版本8.0(Windows Embedded Compact 2013)支持即开即用。其它版本可能需要给 CMAKE_GENERATOR_TOOLSET 设置正确的值。
+Cross Compiling for Windows Phone
+A toolchain file to configure a Visual Studio generator for Windows Phone may look like this:
+为 Windows Phone 配置 Visual Studio 生成器的工具链文件，如下：
+set(CMAKE_SYSTEM_NAME WindowsPhone)
+set(CMAKE_SYSTEM_VERSION 8.1)
+Cross Compiling for Windows Store
+A toolchain file to configure a Visual Studio generator for Windows Store may look like this:
+为 Windows Store 配置 Visual Studio 生成器的工具链文件，如下：
+set(CMAKE_SYSTEM_NAME WindowsStore)
+set(CMAKE_SYSTEM_VERSION 8.1)
+Cross Compiling using NVIDIA Nsight Tegra
+A toolchain file to configure a Visual Studio generator to build using NVIDIA Nsight Tegra targeting Android may look like this:
+使用 NVIDIA Nsight Tegra 的 Android，配置 Visual Studio 生成器的工具链文件如下：
+set(CMAKE_SYSTEM_NAME Android)
+The CMAKE_GENERATOR_TOOLSET may be set to select the Nsight Tegra “Toolchain Version” value.
+可以设置 CMAKE_GENERATOR_TOOLSET 为 Nsight Tegra “Toolchain Version” 值。
+See the ANDROID_API_MIN, ANDROID_API and ANDROID_GUI target properties to configure targets within the project.
+参考 ANDROID_API_MIN，ANDROID_API 和 ANDROID_GUI 目标属性配置项目内的目标。
+
+make -f hwm/oam/source/ddm/CMakeFiles/object_ddm.dir/build.make hwm/oam/source/ddm/CMakeFiles/object_ddm.dir/source/p_r_ddmmanager.c.i
