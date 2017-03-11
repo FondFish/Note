@@ -1,0 +1,32 @@
+
+
+进入单用户模式: 按shift（ESC）进入
+1、开机到grub时，用上下键移到第二行的恢复模式，按e（注意不是回车）
+ 即Ubuntu，With Linux 3.2.0-23-generic（recovery mode）
+2、把ro recovery nomodeset 改成rw single init=/bin/bash      然后按ctrl+x    就可以进入 单用户模式。
+
+问题解决：sudo: /usr/bin/sudo must be owned by uid 0 and have the setuid bit set
+Log out as the current user, then log back in as root.
+mount -o remount,rw / 
+Execute chown root:root /usr/bin/sudo && chmod 4755 /usr/bin/sudo
+chown root:root /usr/lib/sudo/sudoers.so && chmod 4755 /usr/lib/sudo/sudoers.so; chown root:root /etc/sudoers; chown root:root /etc/sudoers;
+chown for /etc/sudoers.d, /etc/sudoers.d/README and/var/lib/sudo
+Log out as root, then log back in as the current user.
+
+问题解决：cupsd任务利用率达到100%
+1、top -H 查看利用率（按1显示各个核占用率 q退出）
+通过 f 键可以选择显示的内容。按 f 键之后会显示列的列表，按 a-z 即可显示或隐藏对应的列，最后按回车键确定。
+显示ppid显示该进程父进程为1，代表是init system启动；看cpu利用率主要耗在sys区
+2、strace跟踪
+stracestrace可以跟踪到一个进程产生的系统调用,包括参数，返回值，执行消耗的时间；
+strace -p pid
+看跟踪打印，主要的系统调用是在写fd 6这个操作上；
+3 cd  /proc/pid/fd;
+cat这个fd 6这个文件，发现这里主要在记录写一个error文件，打印是
+4、更改cupsd相关文件权限为4755
+
+问题：编译出现链接缺失某个GNU库
+cc server.o  -lpthread -lrt -lreadline -ltermcap -o test
+/usr/bin/ld: cannot find -lreadline
+/usr/bin/ld: cannot find -ltermcap
+解决：sudo apt-get install libreadline-dev
